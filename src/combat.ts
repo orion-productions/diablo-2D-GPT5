@@ -1,5 +1,6 @@
 import { Container, Graphics } from 'pixi.js'
 import { Enemy } from './enemy'
+import { Breakable } from './props'
 
 export class Projectile extends Graphics {
 	private vx: number
@@ -39,13 +40,15 @@ export class Projectile extends Graphics {
 }
 
 export class CombatSystem {
-	projectiles: Projectile[] = []
-	layer: Container
+  projectiles: Projectile[] = []
+  layer: Container
   enemies: Enemy[] = []
+  breakablesLayer?: Container
 
-	constructor(layer: Container) {
-		this.layer = layer
-	}
+  constructor(layer: Container, breakablesLayer?: Container) {
+    this.layer = layer
+    this.breakablesLayer = breakablesLayer
+  }
 
 	castMagic(x: number, y: number, targetX: number, targetY: number) {
 		const p = new Projectile(x, y, targetX - x, targetY - y, 280, 0x99ddff)
@@ -53,20 +56,39 @@ export class CombatSystem {
 		this.projectiles.push(p)
 	}
 
-	update(dt: number) {
+  update(dt: number) {
 		for (let i = this.projectiles.length - 1; i >= 0; i--) {
 			const p = this.projectiles[i]
-      const dead = p.update(dt) || p.tryHit(this.enemies)
+      let dead = p.update(dt)
+      // enemy hit
+      if (!dead && p.tryHit(this.enemies)) dead = true
+      // breakable hit
+      if (!dead && this.breakablesLayer) {
+        for (const child of this.breakablesLayer.children) {
+          if (child instanceof Breakable) {
+            const dx = child.x - p.x
+            const dy = child.y - p.y
+            if (dx * dx + dy * dy <= 10 * 10) {
+              child.takeDamage(3)
+              dead = true
+              break
+            }
+          }
+        }
+      }
 			if (dead) {
 				p.destroy()
 				this.projectiles.splice(i, 1)
 			}
 		}
-    // prune destroyed enemies to avoid accessing destroyed objects
+    // update enemies, then prune destroyed
+    for (const e of this.enemies) {
+      if (!e.destroyed && (e as any).update) e.update(dt)
+    }
     this.enemies = this.enemies.filter((e) => !e.destroyed)
 	}
 
-	meleeAttack(x: number, y: number, radius: number) {
+  meleeAttack(x: number, y: number, radius: number) {
 		// hit enemies in radius and knock them back slightly
 		for (const e of this.enemies) {
       if (e.destroyed) continue
@@ -87,6 +109,16 @@ export class CombatSystem {
 				setTimeout(() => flash.destroy(), 80)
 			}
 		}
+    // breakables in decor layer
+    if (this.breakablesLayer) {
+      for (const child of this.breakablesLayer.children.slice()) {
+        if (child instanceof Breakable) {
+          const dx = child.x - x
+          const dy = child.y - y
+          if (dx * dx + dy * dy <= radius * radius) child.takeDamage(3)
+        }
+      }
+    }
 	}
 }
 

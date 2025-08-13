@@ -48,6 +48,7 @@ async function boot() {
 		'/assets/music/8bit Dungeon Level.mp3',
 		'/assets/music/Aggressor.mp3'
 	])
+	;(window as any).__audio = audio
 
 	// Decor: place wall candles around room perimeters
 	for (const room of world.getRooms()) {
@@ -178,7 +179,7 @@ async function boot() {
 		if (!enemy.destroyed) enemy.update(delta)
 
 		// Toggle inventory overlay with I
-		if (input.wasPressed('i')) overlay.toggle()
+		if (input.wasPressed('i')) { overlay.toggle(); audio.playSfx('/assets/sfx/ui_click.wav') }
 		// Start music on first input if not already (gesture requirement)
 		if (input.wasPressed('i') || input.wasPressed(' ') || input.wasPressed('enter') || input.wasPressed('b')) {
 			audio.start()
@@ -213,7 +214,7 @@ async function boot() {
 					(nearest as any).tryOpen()
 					audio.playSfx('/assets/sfx/chest_open.wav')
 				}
-				if ((nearest as any).collect) (nearest as any).collect((window as any).__inventory)
+				if ((nearest as any).collect) { (nearest as any).collect((window as any).__inventory); audio.playSfx('/assets/sfx/pickup.wav') }
 				overlay.render()
 			}
 		}

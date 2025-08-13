@@ -51,6 +51,7 @@ export class Breakable extends Graphics {
 			debris.x = this.x; debris.y = this.y
 			this.parent?.addChild(debris)
 			setTimeout(() => debris.destroy(), 150)
+			try { (window as any).__audio?.playSfx('/assets/sfx/breakable_smash.wav') } catch {}
 			this.destroy()
 		}
 	}

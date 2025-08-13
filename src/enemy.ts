@@ -95,7 +95,7 @@ export class Enemy extends Container {
 	}
 
 	takeDamage(amount: number, knockbackX = 0, knockbackY = 0) {
-		this.health = Math.max(0, this.health - amount)
+    this.health = Math.max(0, this.health - amount)
 		// knockback
 		this.x += knockbackX
 		this.y += knockbackY
@@ -104,7 +104,7 @@ export class Enemy extends Container {
 		this.drawHealthBar()
 		this.barBg.visible = true
 		this.barFg.visible = true
-		// brief damage flash
+    // brief damage flash + sfx
 		if (!this.flash) {
 			this.flash = new Graphics().roundRect(-7, -9, 14, 16, 3).fill({ color: 0xffffff, alpha: 0.6 })
 			this.addChild(this.flash)
@@ -113,6 +113,7 @@ export class Enemy extends Container {
 				this.flash = null
 			}, 60)
 		}
+    try { (window as any).__audio?.playSfx('/assets/sfx/enemy_hit.wav') } catch {}
 		if (this.health <= 0 && !this.destroyed) {
 			const inv = (this.target as any).inventory ?? (window as any).__inventory
 			const chest = new Chest(inv)

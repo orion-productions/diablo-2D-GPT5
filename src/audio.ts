@@ -6,6 +6,8 @@ export class AudioManager {
 	private muted = false
 	private volume = 0.5
 
+	private sfxCache: Map<string, HTMLAudioElement> = new Map()
+
 	constructor(trackPaths: string[]) {
 		this.tracks = trackPaths
 	}
@@ -50,6 +52,19 @@ export class AudioManager {
 
 	adjustVolume(delta: number) {
 		this.setVolume(this.volume + delta)
+	}
+
+	playSfx(src: string) {
+		let el = this.sfxCache.get(src)
+		if (!el) {
+			el = new Audio(src)
+			this.sfxCache.set(src, el)
+		}
+		try {
+			el.currentTime = 0
+			el.volume = this.muted ? 0 : Math.min(1, this.volume * 1.2)
+			void el.play()
+		} catch {}
 	}
 }
 

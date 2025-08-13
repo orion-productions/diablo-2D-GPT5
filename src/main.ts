@@ -160,12 +160,14 @@ async function boot() {
 			const worldY = (mouse.y - camera.y) / PIXEL_SCALE
 			combat.castMagic(player.x, player.y, worldX, worldY)
 			animator.triggerCast()
+			audio.playSfx('/assets/sfx/cast_whoosh.wav')
 		}
 
 		// Melee on keyboard 'b' or controller east button (index 1)
 		if (input.wasPressed('b') || input.wasGamepadButtonPressed(1)) {
 			combat.meleeAttack(player.x, player.y, 22)
 			animator.triggerMelee()
+			audio.playSfx('/assets/sfx/melee_hit.wav')
 		}
 
 		combat.update(delta)
@@ -207,7 +209,10 @@ async function boot() {
 				}
 			}
 			if (nearest && best < 32 * 32) {
-				if ((nearest as any).tryOpen) (nearest as any).tryOpen()
+				if ((nearest as any).tryOpen) {
+					(nearest as any).tryOpen()
+					audio.playSfx('/assets/sfx/chest_open.wav')
+				}
 				if ((nearest as any).collect) (nearest as any).collect((window as any).__inventory)
 				overlay.render()
 			}

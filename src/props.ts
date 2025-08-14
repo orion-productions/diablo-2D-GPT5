@@ -37,37 +37,38 @@ export class Candle extends Container {
     }
 }
 
-export class Breakable extends Graphics {
-	hp: number
-	public kind: 'table' | 'chair'
-	constructor(kind: 'table' | 'chair' = 'table') {
-		super()
-		this.kind = kind
-		this.hp = kind === 'table' ? 6 : 3
-		this.draw()
-	}
+export class Breakable extends Container {
+    hp: number
+    public kind: 'table' | 'chair'
+    private sprite: Sprite | null = null
+    constructor(kind: 'table' | 'chair' = 'table') {
+        super()
+        this.kind = kind
+        this.hp = kind === 'table' ? 6 : 3
+        void this.draw()
+    }
 
     private async draw() {
-        this.clear()
         const tex = this.kind === 'table'
             ? await Assets.load<Texture>('/assets/characters/crate.png')
             : await Assets.load<Texture>('/assets/tiles/box_1/box_1_1.png')
-        const s = new Sprite(tex)
-        s.anchor.set(0.5)
-        this.addChild(s)
+        this.sprite?.destroy()
+        this.sprite = new Sprite(tex)
+        this.sprite.anchor.set(0.5)
+        this.addChild(this.sprite)
     }
 
-	takeDamage(dmg: number) {
-		this.hp -= dmg
-		if (this.hp <= 0) {
-			const debris = new Graphics().rect(-6, -4, 12, 8).fill({ color: 0x3a2a15, alpha: 0.5 })
-			debris.x = this.x; debris.y = this.y
-			this.parent?.addChild(debris)
-			setTimeout(() => debris.destroy(), 150)
-			try { (window as any).__audio?.playSfx('/assets/sfx/breakable_smash.wav') } catch {}
-			this.destroy()
-		}
-	}
+    takeDamage(dmg: number) {
+        this.hp -= dmg
+        if (this.hp <= 0) {
+            const debris = new Graphics().rect(-6, -4, 12, 8).fill({ color: 0x3a2a15, alpha: 0.5 })
+            debris.x = this.x; debris.y = this.y
+            this.parent?.addChild(debris)
+            setTimeout(() => debris.destroy(), 150)
+            try { (window as any).__audio?.playSfx('/assets/sfx/breakable_smash.wav') } catch {}
+            this.destroy()
+        }
+    }
 }
 
 export class Pickup extends Graphics {

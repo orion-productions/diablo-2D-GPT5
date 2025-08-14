@@ -60,6 +60,30 @@ export class InventoryOverlay {
     const SLOT_LABELS: Record<string, string> = {
       weapon: 'Wpn', armor: 'Armor', helmet: 'Helm', boots: 'Boots', offhand: 'Off', amulet: 'Amu', ring: 'Ring',
     }
+    const getIconFor = (item: Item): string => {
+      const name = item.name.toLowerCase()
+      switch (item.slot) {
+        case 'weapon':
+          if (name.includes('rusty')) return '/assets/characters/weapon_rusty_sword.png'
+          return '/assets/characters/weapon_regular_sword.png'
+        case 'helmet':
+          return name.includes('leather') ? '/assets/characters/knight_m_idle_anim_f0.png' : '/assets/characters/knight_m_idle_anim_f2.png'
+        case 'armor':
+          if (name.includes('cloth')) return '/assets/characters/knight_m_idle_anim_f1.png'
+          if (name.includes('padded')) return '/assets/characters/knight_m_run_anim_f1.png'
+          return '/assets/characters/knight_m_idle_anim_f1.png'
+        case 'boots':
+          return name.includes('leather') ? '/assets/characters/knight_m_run_anim_f0.png' : '/assets/characters/knight_m_run_anim_f2.png'
+        case 'offhand':
+          return '/assets/characters/knight_m_run_anim_f3.png'
+        case 'amulet':
+          return '/assets/tiles/keys/keys_1_1.png'
+        case 'ring':
+          return '/assets/tiles/coin/coin_1.png'
+        default:
+          return ''
+      }
+    }
     for (const slot of ['weapon','armor','helmet','boots','offhand','amulet','ring'] as const) {
       const cell = document.createElement('div')
       cell.className = 'inv-cell'
@@ -67,14 +91,7 @@ export class InventoryOverlay {
       const img = document.createElement('img')
       img.style.width = '24px'; img.style.height = '24px'
       let src = ''
-      // icon atlas mapping
-      if (slot === 'weapon') src = '/assets/characters/weapon_regular_sword.png'
-      else if (slot === 'helmet') src = '/assets/characters/knight_m_idle_anim_f0.png'
-      else if (slot === 'boots') src = '/assets/characters/knight_m_run_anim_f0.png'
-      else if (slot === 'armor') src = '/assets/characters/knight_m_idle_anim_f1.png'
-      else if (slot === 'amulet') src = '/assets/tiles/keys/keys_1_1.png'
-      else if (slot === 'ring') src = '/assets/tiles/coin/coin_1.png'
-      if (item && item.slot === 'potion') src = '/assets/tiles/flasks/flasks_1_1.png'
+      if (item) src = getIconFor(item)
       if (src) img.src = src
       if (item) cell.title = item.name
       if (item) cell.classList.add('filled')
@@ -112,13 +129,8 @@ export class InventoryOverlay {
       img.alt = item.name
       // crude icon mapping
       let src = ''
-      if (item.slot === 'weapon') src = '/assets/characters/weapon_rusty_sword.png'
-      else if (item.slot === 'helmet') src = '/assets/characters/knight_m_idle_anim_f0.png'
-      else if (item.slot === 'boots') src = '/assets/characters/knight_m_run_anim_f0.png'
-      else if (item.slot === 'armor') src = '/assets/characters/knight_m_idle_anim_f1.png'
-      else if (item.slot === 'potion') src = '/assets/tiles/flasks/flasks_1_1.png'
-      else if (item.slot === 'ring') src = '/assets/tiles/coin/coin_1.png'
-      else if (item.slot === 'amulet') src = '/assets/tiles/keys/keys_1_1.png'
+      if (item.slot === 'potion') src = '/assets/tiles/flasks/flasks_1_1.png'
+      else src = getIconFor(item)
       if (src) img.src = src; else cell.textContent = item.name
       if (src) cell.appendChild(img)
       const badge = document.createElement('div')

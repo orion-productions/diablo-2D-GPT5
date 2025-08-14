@@ -54,15 +54,17 @@ export class InventoryOverlay {
       const img = document.createElement('img')
       img.style.width = '24px'; img.style.height = '24px'
       let src = ''
-      if (slot === 'weapon') src = '/assets/characters/weapon_rusty_sword.png'
+      // icon atlas mapping
+      if (slot === 'weapon') src = '/assets/characters/weapon_regular_sword.png'
       else if (slot === 'helmet') src = '/assets/characters/knight_m_idle_anim_f0.png'
       else if (slot === 'boots') src = '/assets/characters/knight_m_run_anim_f0.png'
       else if (slot === 'armor') src = '/assets/characters/knight_m_idle_anim_f1.png'
       else if (slot === 'amulet') src = '/assets/tiles/keys/keys_1_1.png'
       else if (slot === 'ring') src = '/assets/tiles/coin/coin_1.png'
+      if (item && item.slot === 'potion') src = '/assets/tiles/flasks/flasks_1_1.png'
       if (src) img.src = src
       if (item) cell.title = item.name
-      cell.appendChild(img)
+      if (src) cell.appendChild(img)
       eqGrid.appendChild(cell)
     }
     this.equipped.appendChild(eqGrid)

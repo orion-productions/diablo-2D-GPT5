@@ -88,6 +88,9 @@ export class PlayerAnimator {
 			this.castGlow.visible = false
 			this.castGlow.scale.set(1)
 		}
+
+		// keep attachments following player
+		this.attachments.position.copyFrom(this.player.position)
 	}
 }
 

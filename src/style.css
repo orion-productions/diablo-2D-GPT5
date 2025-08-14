@@ -47,7 +47,7 @@ h1 {
 	position: fixed;
 	top: 16px;
 	left: 16px;
-	background: rgba(0,0,0,0.7);
+	background: rgba(0,0,0,0.7) url('/assets/ui/dungeonui.v1.png');
 	color: white;
 	padding: 12px;
 	border: 1px solid #444;
@@ -57,7 +57,8 @@ h1 {
 .inv-title { margin-bottom: 8px; font-weight: 700; }
 .inv-equipped { margin-bottom: 8px; }
 .inv-grid { display: grid; grid-template-columns: repeat(2, 1fr); gap: 6px; }
-.inv-cell { padding: 6px; }
+.inv-cell { padding: 6px; background: url('/assets/ui/square_left_1.png') center/cover no-repeat; width: 36px; height: 36px; display: inline-flex; align-items: center; justify-content: center; }
+.inv-cell img { image-rendering: pixelated; }
 
 .logo {
   height: 6em;

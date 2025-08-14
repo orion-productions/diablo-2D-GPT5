@@ -98,6 +98,26 @@ async function boot() {
 	const overlay = new InventoryOverlay(inventory)
 	;(window as any).__inventory = inventory
 
+	// Quick in-game equipment preview: 1=weapon, 2=armor, 3=helmet, 4=boots
+	const weaponVariants = [
+		{ id: 'wpn-rusty', name: 'Rusty Sword', slot: 'weapon', attack: 2 },
+		{ id: 'wpn-short', name: 'Short Sword', slot: 'weapon', attack: 3 },
+		{ id: 'wpn-golden', name: 'Golden Sword', slot: 'weapon', attack: 5 },
+	]
+	const armorVariants = [
+		{ id: 'arm-cloth', name: 'Cloth Tunic', slot: 'armor', defense: 1 },
+		{ id: 'arm-padded', name: 'Padded Armor', slot: 'armor', defense: 2 },
+	]
+	const helmVariants = [
+		{ id: 'hlm-leather', name: 'Leather Cap', slot: 'helmet', defense: 1 },
+		{ id: 'hlm-cap', name: 'Cap', slot: 'helmet', defense: 2 },
+	]
+	const bootsVariants = [
+		{ id: 'bt-worn', name: 'Worn Boots', slot: 'boots', defense: 1 },
+		{ id: 'bt-leather', name: 'Leather Boots', slot: 'boots', defense: 2 },
+	]
+	let idxW = 0, idxA = 0, idxH = 0, idxB = 0
+
     // One enemy that chases the player but cannot hurt yet
     const enemy = new Enemy(player)
     await enemy.init('goblin', (x,y,dx,dy,r)=> world.resolveMovement(x,y,dx,dy,r))
@@ -196,6 +216,11 @@ async function boot() {
 		if (input.wasPressed('m')) audio.toggleMute()
 		if (input.wasPressed('+') || input.wasPressed('=')) audio.adjustVolume(0.05)
 		if (input.wasPressed('-') || input.wasPressed('_')) audio.adjustVolume(-0.05)
+		// Preview hotkeys 1-4 to cycle gear variants
+		if (input.wasPressed('1')) { const it = weaponVariants[idxW = (idxW + 1) % weaponVariants.length]; inventory.add(it); inventory.equip(it.id); overlay.render() }
+		if (input.wasPressed('2')) { const it = armorVariants[idxA = (idxA + 1) % armorVariants.length]; inventory.add(it); inventory.equip(it.id); overlay.render() }
+		if (input.wasPressed('3')) { const it = helmVariants[idxH = (idxH + 1) % helmVariants.length]; inventory.add(it); inventory.equip(it.id); overlay.render() }
+		if (input.wasPressed('4')) { const it = bootsVariants[idxB = (idxB + 1) % bootsVariants.length]; inventory.add(it); inventory.equip(it.id); overlay.render() }
 		// Open nearest chest/pickup with E
 		if (input.wasPressed('e')) {
 			let nearest: any = null

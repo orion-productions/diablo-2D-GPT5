@@ -1,4 +1,4 @@
-import { Container, Graphics, Sprite, Texture, Assets } from 'pixi.js'
+import { Container, Graphics, Sprite, Texture, Assets, Rectangle } from 'pixi.js'
 import { TILE_SIZE, WORLD_WIDTH_TILES, WORLD_HEIGHT_TILES } from './constants'
 import type { Dungeon, RectRoom } from './dungeon'
 import { loadTiles } from './tiles'
@@ -57,12 +57,33 @@ export class World extends Container {
 	}
 
 	async renderTilesFromAssets() {
-		// Preload a basic set of floor and wall tiles from your pack
-		const floorPaths = Array.from({ length: 8 }, (_, i) => `/assets/characters/floor_${i + 1}.png`)
-		await Assets.load([...floorPaths, '/assets/characters/wall_mid.png', '/assets/characters/wall_top_mid.png'])
-		const floorTextures = floorPaths.map((p) => Texture.from(p))
-		const wallMid = Texture.from('/assets/characters/wall_mid.png')
-		const wallTop = Texture.from('/assets/characters/wall_top_mid.png')
+		// Load atlases from assets/tiles
+		await Assets.load([
+			'/assets/tiles/atlas_floor-16x16.png',
+			'/assets/tiles/atlas_walls_low-16x16.png',
+			'/assets/tiles/atlas_walls_high-16x32.png',
+		])
+		const floorAtlas = Texture.from('/assets/tiles/atlas_floor-16x16.png')
+		const wallLowAtlas = Texture.from('/assets/tiles/atlas_walls_low-16x16.png')
+		const wallHighAtlas = Texture.from('/assets/tiles/atlas_walls_high-16x32.png')
+
+		// Helper to slice a texture atlas into tile-sized subtextures
+		const sliceGrid = (atlas: Texture, tileW: number, tileH: number): Texture[] => {
+			const frames: Texture[] = []
+			const cols = Math.max(1, Math.floor(atlas.width / tileW))
+			const rows = Math.max(1, Math.floor(atlas.height / tileH))
+			for (let ty = 0; ty < rows; ty++) {
+				for (let tx = 0; tx < cols; tx++) {
+					const frame = new Rectangle(tx * tileW, ty * tileH, tileW, tileH)
+					frames.push(new Texture({ baseTexture: (atlas as any).baseTexture, frame }))
+				}
+			}
+			return frames
+		}
+
+		const floorFrames = sliceGrid(floorAtlas, TILE_SIZE, TILE_SIZE)
+		const wallLowFrames = sliceGrid(wallLowAtlas, TILE_SIZE, TILE_SIZE)
+		const wallHighFrames = sliceGrid(wallHighAtlas, TILE_SIZE, TILE_SIZE * 2)
 
 		// Clear any previous tile sprites
 		this.tileLayer.removeChildren()
@@ -70,20 +91,22 @@ export class World extends Container {
 			for (let x = 0; x < this.grid[0].length; x++) {
 				const v = this.grid[y][x]
 				if (v === 0) {
-					const s = new Sprite(floorTextures[(x * 31 + y * 17) % floorTextures.length])
+					// choose a stable pseudo-random floor variant per tile
+					const idx = ((x * 73856093) ^ (y * 19349663)) >>> 0
+					const tex = floorFrames[idx % floorFrames.length]
+					const s = new Sprite(tex)
 					s.x = x * TILE_SIZE
 					s.y = y * TILE_SIZE
-					s.scale.set(1)
 					this.tileLayer.addChild(s)
 				} else {
-					// wall body
-					const mid = new Sprite(wallMid)
+					// wall body (use low wall tile 0 as default)
+					const mid = new Sprite(wallLowFrames[0] || wallLowAtlas)
 					mid.x = x * TILE_SIZE
 					mid.y = y * TILE_SIZE
 					this.tileLayer.addChild(mid)
-					// wall top cap if above is floor
+					// wall top cap if above is floor (use high wall top frame 0)
 					if (y > 0 && this.grid[y - 1][x] === 0) {
-						const top = new Sprite(wallTop)
+						const top = new Sprite(wallHighFrames[0] || wallHighAtlas)
 						top.x = x * TILE_SIZE
 						top.y = y * TILE_SIZE - TILE_SIZE
 						this.tileLayer.addChild(top)

@@ -37,6 +37,14 @@ export class InventorySystem {
 		return true
 	}
 
+		unequip(slot: ItemSlot): boolean {
+			const item = this.equipment[slot]
+			if (!item) return false
+			delete this.equipment[slot]
+			this.bag.push(item)
+			return true
+		}
+
 	usePotion(): boolean {
 		const idx = this.bag.findIndex((i) => i.slot === 'potion')
 		if (idx < 0) return false

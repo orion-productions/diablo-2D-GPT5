@@ -1,19 +1,21 @@
-import { Container, Graphics, Sprite } from 'pixi.js'
+import { Container, Graphics, Sprite, Texture, Rectangle } from 'pixi.js'
 import type { Equipment } from './inventory'
 
 export class PlayerAnimator {
 	private player: Sprite
 	private attachments: Container
-	private helm: Graphics
-	private armor: Graphics
-	private boots: Graphics
-	private weapon: Graphics
+    private helm: Sprite
+    private armor: Sprite
+    private boots: Sprite
+    private weapon: Sprite
 	private castGlow: Graphics
+	private ring: Sprite
 
 	private moving = false
 	private walkPhase = 0
 	private meleeTimer = 0
 	private castTimer = 0
+	private facing: 1 | -1 = 1
 
 	constructor(player: Sprite) {
 		this.player = player
@@ -21,20 +23,75 @@ export class PlayerAnimator {
         this.player.parent?.addChild(this.attachments)
         this.attachments.position.copyFrom(this.player.position)
 
-    this.helm = new Graphics().rect(-3, -12, 6, 3).fill({ color: 0xbbaa77 })
-    this.armor = new Graphics().rect(-5, -6, 10, 8).fill({ color: 0x7788aa })
-    this.boots = new Graphics().rect(-4, 6, 8, 3).fill({ color: 0x664422 })
-		this.weapon = new Graphics().rect(6, -1, 8, 2).fill({ color: 0xccaa55 })
-		this.weapon.pivot.set(0, 0)
+        // Asset-based overlays (sprites)
+        this.helm = new Sprite(Texture.WHITE)
+        this.armor = new Sprite(Texture.WHITE)
+        this.boots = new Sprite(Texture.WHITE)
+        this.weapon = new Sprite(Texture.from('/assets/characters/weapon_regular_sword.png'))
+        this.weapon.anchor.set(0, 0.5)
+		// small ring overlay
+		this.ring = new Sprite(Texture.from('/assets/tiles/coin/coin_1.png'))
+		this.ring.anchor.set(0.5)
+		this.ring.scale.set(0.5)
 		this.castGlow = new Graphics().circle(0, 0, 10).fill({ color: 0x77ccff, alpha: 0.5 })
 		this.castGlow.visible = false
 
-		this.attachments.addChild(this.helm, this.armor, this.boots, this.weapon, this.castGlow)
+        this.helm.anchor.set(0.5)
+        this.armor.anchor.set(0.5)
+        this.boots.anchor.set(0.5)
+        this.helm.position.set(0, -9)
+        this.armor.position.set(0, 1)
+        this.boots.position.set(0, 12)
+        this.weapon.position.set(6, 0)
+        this.ring.position.set(4, 0)
+        // enforce overlay draw order: behind player for armor/boots, on top for weapon/glow
+        ;(this.attachments as any).sortableChildren = true
+        this.armor.zIndex = 0
+        this.boots.zIndex = 0
+        this.helm.zIndex = 1
+        this.ring.zIndex = 2
+        this.weapon.zIndex = 3
+        this.castGlow.zIndex = 4
+        this.attachments.addChild(this.armor, this.boots, this.helm, this.ring, this.weapon, this.castGlow)
+	}
+
+	private slice(basePath: string, rect: Rectangle): Texture {
+		const base = Texture.from(basePath)
+		return new Texture({ source: (base as any).source, frame: rect })
+	}
+
+    private getHelmetTexture(name: string): Texture {
+        // wider crop to cover the whole face region
+        const rect = new Rectangle(1, 0, 14, 10)
+        return this.slice('/assets/characters/knight_m_idle_anim_f2.png', rect)
+	}
+
+    private getArmorTexture(name: string): Texture {
+        // larger torso crop to cover most of the body
+        const isCloth = name.includes('cloth')
+        const base = isCloth ? '/assets/characters/knight_m_idle_anim_f1.png' : '/assets/characters/knight_m_run_anim_f1.png'
+        const rect = new Rectangle(1, 4, 14, 12)
+        return this.slice(base, rect)
+	}
+
+    private getBootsTexture(_name: string): Texture {
+        // feet area wide slice along the bottom
+        const rect = new Rectangle(2, 13, 12, 3)
+        return this.slice('/assets/characters/knight_m_run_anim_f0.png', rect)
 	}
 
 	setMoving(isMoving: boolean) {
 		this.moving = isMoving
 		if (!isMoving) this.walkPhase = 0
+	}
+
+	setFacing(dir: 1 | -1) {
+		if (this.facing === dir) return
+		this.facing = dir
+		this.attachments.scale.x = dir
+		// adjust weapon origin when flipping
+		this.weapon.position.set(dir === 1 ? 6 : -6, 0)
+		this.weapon.anchor.set(dir === 1 ? 0 : 1, 0.5)
 	}
 
 	triggerMelee() {
@@ -47,21 +104,34 @@ export class PlayerAnimator {
 	}
 
 	applyEquipmentVisibility(equipment: Equipment) {
-		this.helm.visible = !!equipment.helmet
-		this.armor.visible = !!equipment.armor
-		this.boots.visible = !!equipment.boots
-		this.weapon.visible = !!equipment.weapon
-		// tint based on equipped gear for visual feedback
-    // differentiate visuals by item names
-    const armorName = equipment.armor?.name.toLowerCase() || ''
-    const helmName = equipment.helmet?.name.toLowerCase() || ''
-    const bootsName = equipment.boots?.name.toLowerCase() || ''
-    const weaponName = equipment.weapon?.name.toLowerCase() || ''
-
-    this.armor.tint = equipment.armor ? (armorName.includes('cloth') ? 0x8aa3ff : armorName.includes('padded') ? 0x6b84d6 : 0xa1b6ff) : 0xffffff
-    this.helm.tint = equipment.helmet ? (helmName.includes('leather') ? 0xc89c6b : 0xffeeaa) : 0xffffff
-    this.boots.tint = equipment.boots ? (bootsName.includes('leather') ? 0x8b5a2b : 0xccaa88) : 0xffffff
-    this.weapon.tint = equipment.weapon ? (weaponName.includes('rusty') ? 0xb08e63 : weaponName.includes('short') ? 0xd1b35a : 0xffcc55) : 0xffffff
+		// weapon
+		if (equipment.weapon) {
+			const nm = equipment.weapon.name.toLowerCase()
+			if (nm.includes('rusty')) this.weapon.texture = Texture.from('/assets/characters/weapon_rusty_sword.png')
+			else if (nm.includes('short')) this.weapon.texture = Texture.from('/assets/characters/weapon_regular_sword.png')
+			else if (nm.includes('staff')) this.weapon.texture = Texture.from('/assets/characters/weapon_green_magic_staff.png')
+			this.weapon.visible = true
+		} else {
+			this.weapon.visible = false
+		}
+		// helmet (cropped overlay)
+		if (equipment.helmet) {
+			this.helm.texture = this.getHelmetTexture(equipment.helmet.name.toLowerCase())
+			this.helm.visible = true
+		} else this.helm.visible = false
+		// armor (cropped overlay)
+		if (equipment.armor) {
+			const nm = equipment.armor.name.toLowerCase()
+			this.armor.texture = this.getArmorTexture(nm)
+			this.armor.visible = true
+		} else this.armor.visible = false
+		// boots (cropped overlay)
+		if (equipment.boots) {
+			this.boots.texture = this.getBootsTexture(equipment.boots.name.toLowerCase())
+			this.boots.visible = true
+		} else this.boots.visible = false
+        // ring appears only when equipped
+        this.ring.visible = !!equipment.ring
 	}
 
 	update(dt: number) {
@@ -78,7 +148,7 @@ export class PlayerAnimator {
 			this.meleeTimer = Math.max(0, this.meleeTimer - dt)
 			const t = 1 - this.meleeTimer / 0.2 // 0 -> 1
 			const swing = (Math.sin(t * Math.PI) * 1.4) - 0.7
-			this.weapon.rotation = swing
+            this.weapon.rotation = swing
 		} else {
 			this.weapon.rotation = 0
 		}
@@ -96,7 +166,7 @@ export class PlayerAnimator {
 		}
 
 		// keep attachments following player
-		this.attachments.position.copyFrom(this.player.position)
+        this.attachments.position.copyFrom(this.player.position)
 	}
 }
 

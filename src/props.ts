@@ -87,3 +87,55 @@ export class Pickup extends Graphics {
 }
 
 
+export class SideTorch extends Container {
+	private anim: AnimatedSprite
+	constructor(side: 'left' | 'right' = 'left') {
+		super()
+		const frames = [1,2,3,4].map(i => Texture.from(`/assets/tiles/torch/side_torch_${i}.png`))
+		this.anim = new AnimatedSprite(frames)
+		this.anim.animationSpeed = 0.18
+		this.anim.anchor.set(0.5)
+		if (side === 'right') this.anim.scale.x = -1
+		this.addChild(this.anim)
+		this.anim.play()
+	}
+}
+
+export class Banner extends Container {
+	constructor(color: 'red' | 'blue' | 'green' | 'yellow' = 'red') {
+		super()
+        this.zIndex = 1 // above tiles, below entities
+		const map = {
+			red: '/assets/characters/wall_banner_red.png',
+			blue: '/assets/characters/wall_banner_blue.png',
+			green: '/assets/characters/wall_banner_green.png',
+			yellow: '/assets/characters/wall_banner_yellow.png',
+		} as const
+		const s = new Sprite(Texture.from(map[color]))
+		s.anchor.set(0.5)
+		this.addChild(s)
+	}
+}
+
+export class Fountain extends Container {
+    private anim: AnimatedSprite | null = null
+    constructor(color: 'blue' | 'red' = 'blue') {
+        super()
+        void this.init(color)
+    }
+
+    private async init(color: 'blue' | 'red') {
+        const prefix = color === 'blue' ? 'blue' : 'red'
+        const paths = [0,1,2].map(i => `/assets/characters/wall_fountain_mid_${prefix}_anim_f${i}.png`)
+        const frames = (await Promise.all(paths.map(p => Assets.load<Texture>(p).catch(()=>undefined))))
+            .filter((t): t is Texture => !!t)
+        if (frames.length === 0) return
+        this.anim = new AnimatedSprite(frames)
+        this.anim.animationSpeed = 0.12
+        this.anim.anchor.set(0.5)
+        this.addChild(this.anim)
+        this.anim.play()
+    }
+}
+
+

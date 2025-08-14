@@ -112,6 +112,10 @@ export class InventoryOverlay {
       label.className = 'slot-label'
       label.textContent = SLOT_LABELS[slot]
       cell.appendChild(label)
+      if (item) {
+        cell.classList.add('clickable')
+        cell.onclick = () => { this.inventory.unequip(slot); this.render() }
+      }
       eqGrid.appendChild(cell)
     }
     this.equipped.appendChild(eqGrid)

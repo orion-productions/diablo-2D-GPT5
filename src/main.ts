@@ -1,4 +1,4 @@
-import { Application, Container, AnimatedSprite } from 'pixi.js'
+import { Application, Container, AnimatedSprite, Assets } from 'pixi.js'
 import './style.css'
 import { InputManager } from './input'
 import { World } from './world'
@@ -9,7 +9,7 @@ import { InventoryOverlay } from './ui'
 import { Enemy } from './enemy'
 import { PlayerAnimator } from './player'
 import { Minimap } from './minimap'
-import { Candle, Breakable, Pickup } from './props'
+import { Candle, Breakable, Pickup, SideTorch, Banner, Fountain } from './props'
 import { loadTiles } from './tiles'
 import { loadCharacterAnim } from './sprites'
 import { AudioManager } from './audio'
@@ -31,6 +31,19 @@ async function boot() {
 	const camera = new Container()
 	camera.addChild(world)
 	app.stage.addChild(camera)
+
+  // Preload common character/equipment/UI textures before creating overlays
+  await Assets.load([
+    '/assets/characters/weapon_regular_sword.png',
+    '/assets/characters/weapon_rusty_sword.png',
+    '/assets/characters/weapon_green_magic_staff.png',
+    '/assets/characters/knight_m_idle_anim_f1.png',
+    '/assets/characters/knight_m_idle_anim_f2.png',
+    '/assets/characters/knight_m_run_anim_f0.png',
+    '/assets/characters/knight_m_run_anim_f1.png',
+    '/assets/characters/wall_banner_red.png',
+    '/assets/tiles/coin/coin_1.png'
+  ])
 
     // Player animated sprite (knight)
     const playerAnim = await loadCharacterAnim('knight_m')
@@ -56,6 +69,17 @@ async function boot() {
 
     // Load tiles and use animated candle frames if available
     const tiles = await loadTiles()
+    // Preload common character/equipment/UI textures used by overlays/props
+    await Assets.load([
+        '/assets/characters/weapon_regular_sword.png',
+        '/assets/characters/weapon_rusty_sword.png',
+        '/assets/characters/weapon_green_magic_staff.png',
+        '/assets/characters/knight_m_idle_anim_f1.png',
+        '/assets/characters/knight_m_idle_anim_f2.png',
+        '/assets/characters/knight_m_run_anim_f0.png',
+        '/assets/characters/knight_m_run_anim_f1.png',
+        '/assets/characters/wall_banner_red.png'
+    ])
     await world.renderTilesFromAssets()
     for (const room of world.getRooms()) {
         for (let x = room.x; x < room.x + room.w; x += 4) {
@@ -69,6 +93,14 @@ async function boot() {
             const right = world.tileToWorld(room.x + room.w - 1, y)
             const c3 = new Candle(tiles.candleFrames); c3.x = left.x - 6; c3.y = left.y; world.decorLayer.addChild(c3)
             const c4 = new Candle(tiles.candleFrames); c4.x = right.x + 6; c4.y = right.y; world.decorLayer.addChild(c4)
+        }
+        // add banners and fountains occasionally
+        if ((room.x + room.y) % 3 === 0) {
+            const b = new Banner('red'); b.x = (room.x + 1) * 16 + 8; b.y = room.y * 16 + 8; world.decorLayer.addChild(b)
+        }
+        // add fountain only if assets exist (lazy-created inside)
+        if ((room.x + room.y) % 5 === 0) {
+            const f = new Fountain('blue'); f.x = (room.cx) * 16 + 8; f.y = (room.y + 1) * 16 + 8; world.decorLayer.addChild(f)
         }
     }
 
@@ -134,10 +166,11 @@ async function boot() {
 	combat.enemies.push(enemy)
 
 	// Spawn additional enemies and breakables/pickups in rooms
-	for (let i = 2; i < Math.min(world.getRooms().length, 8); i++) {
+    for (let i = 2; i < Math.min(world.getRooms().length, 10); i++) {
 		const rm = world.getRooms()[i]
         const e = new Enemy(player)
-        await e.init(i % 2 === 0 ? 'skeleton' : 'goblin', (x,y,dx,dy,r)=> world.resolveMovement(x,y,dx,dy,r))
+        const kind = i % 3 === 0 ? 'ogre' : i % 3 === 1 ? 'skeleton' : 'goblin'
+        await e.init(kind as any, (x,y,dx,dy,r)=> world.resolveMovement(x,y,dx,dy,r))
 		e.x = rm.cx * 16 + 8
 		e.y = rm.cy * 16 + 8
 		world.entityLayer.addChild(e)
@@ -151,6 +184,10 @@ async function boot() {
 		const p = new Pickup({ id: `ring-${i}`, name: 'Ring', slot: 'ring', magicPower: 1 })
 		p.x = e.x - 10; p.y = e.y - 10; world.pickupLayer.addChild(p)
 	}
+
+    // Hero swap preview: H cycles candidate heroes
+    const heroOptions = ['knight_m','wizzard_m','elf_m','dwarf_m'] as const
+    let heroIdx = 0
 
 	const input = new InputManager()
 	const speed = 180 // px/sec
@@ -182,6 +219,7 @@ async function boot() {
 			player.y = resolved.y
 		}
 		animator.setMoving(dx !== 0 || dy !== 0)
+		if (dx !== 0) animator.setFacing(dx > 0 ? 1 : -1)
 
 		// Cast magic toward mouse position on Space
 		if (input.wasPressed(' ') || input.wasPressed('enter')) {
@@ -221,6 +259,14 @@ async function boot() {
 		if (input.wasPressed('2')) { const it = armorVariants[idxA = (idxA + 1) % armorVariants.length]; inventory.add(it); inventory.equip(it.id); overlay.render() }
 		if (input.wasPressed('3')) { const it = helmVariants[idxH = (idxH + 1) % helmVariants.length]; inventory.add(it); inventory.equip(it.id); overlay.render() }
 		if (input.wasPressed('4')) { const it = bootsVariants[idxB = (idxB + 1) % bootsVariants.length]; inventory.add(it); inventory.equip(it.id); overlay.render() }
+		// Hero swap
+		if (input.wasPressed('h')) {
+			heroIdx = (heroIdx + 1) % heroOptions.length
+			loadCharacterAnim(heroOptions[heroIdx]).then(frames => {
+				player.textures = frames.idle
+				player.gotoAndPlay(0)
+			})
+		}
 		// Open nearest chest/pickup with E
 		if (input.wasPressed('e')) {
 			let nearest: any = null

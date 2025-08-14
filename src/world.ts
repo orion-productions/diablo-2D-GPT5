@@ -16,11 +16,18 @@ export class World extends Container {
 
 	constructor() {
 		super()
+    // Enable zIndex-based sorting for deterministic draw order
+    this.sortableChildren = true
 		this.decorLayer = new Container()
 		this.tileLayer = new Container()
 		this.entityLayer = new Container()
 		this.pickupLayer = new Container()
 		this.playerLayer = new Container()
+    this.tileLayer.zIndex = 0
+    this.decorLayer.zIndex = 2
+    this.entityLayer.zIndex = 3
+    this.pickupLayer.zIndex = 4
+    this.playerLayer.zIndex = 5
 		this.dungeon = generateDungeon(WORLD_WIDTH_TILES, WORLD_HEIGHT_TILES)
 		this.grid = this.dungeon.grid
 		this.drawGrid()

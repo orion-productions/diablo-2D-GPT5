@@ -57,6 +57,9 @@ export class InventoryOverlay {
     this.equipped.innerHTML = ''
     const eqGrid = document.createElement('div')
     eqGrid.className = 'eq-grid'
+    const SLOT_LABELS: Record<string, string> = {
+      weapon: 'Wpn', armor: 'Armor', helmet: 'Helm', boots: 'Boots', offhand: 'Off', amulet: 'Amu', ring: 'Ring',
+    }
     for (const slot of ['weapon','armor','helmet','boots','offhand','amulet','ring'] as const) {
       const cell = document.createElement('div')
       cell.className = 'inv-cell'
@@ -74,7 +77,12 @@ export class InventoryOverlay {
       if (item && item.slot === 'potion') src = '/assets/tiles/flasks/flasks_1_1.png'
       if (src) img.src = src
       if (item) cell.title = item.name
-      if (src) cell.appendChild(img)
+      if (item) cell.classList.add('filled')
+      if (src && item) cell.appendChild(img)
+      const label = document.createElement('div')
+      label.className = 'slot-label'
+      label.textContent = SLOT_LABELS[slot]
+      cell.appendChild(label)
       eqGrid.appendChild(cell)
     }
     this.equipped.appendChild(eqGrid)
@@ -103,6 +111,10 @@ export class InventoryOverlay {
       if (src) cell.appendChild(img)
       cell.title = item.name
       cell.onclick = () => this.onItemClick(item)
+      const sl = document.createElement('div')
+      sl.className = 'slot-label'
+      sl.textContent = (item.slot === 'potion') ? 'Potion' : SLOT_LABELS[item.slot]
+      cell.appendChild(sl)
       grid.appendChild(cell)
     })
     this.list.appendChild(grid)

@@ -1,5 +1,6 @@
-import { Container, Graphics } from 'pixi.js'
+import { Container, Graphics, AnimatedSprite } from 'pixi.js'
 import { Chest } from './loot'
+import { loadCharacterAnim } from './sprites'
 
 export class Enemy extends Container {
 	public target: Container
@@ -14,6 +15,8 @@ export class Enemy extends Container {
 	private eyeR: Graphics
 	private legL: Graphics
 	private legR: Graphics
+	private sprite: AnimatedSprite | null = null
+	private animFrames: { idle: any[]; run: any[] } | null = null
 	private barBg: Graphics
 	private barFg: Graphics
 	private flash: Graphics | null = null
@@ -23,6 +26,7 @@ export class Enemy extends Container {
 	private blinkTimer = 1.5
 	private blinkState = 0
 	private damageDisplayTimer = 0
+	private resolveMovementFn: ((x:number,y:number,dx:number,dy:number,r:number)=>{x:number;y:number}) | null = null
 
 	constructor(target: Container) {
 		super()
@@ -46,6 +50,19 @@ export class Enemy extends Container {
 		this.barFg.visible = false
 	}
 
+	async init(prefix: 'goblin' | 'skeleton' | 'ogre' | 'wizzard_m' | 'wizzard_f' = 'goblin',
+		resolveMovementFn?: (x:number,y:number,dx:number,dy:number,r:number)=>{x:number;y:number}) {
+		this.animFrames = await loadCharacterAnim(prefix as any)
+		this.sprite = new AnimatedSprite(this.animFrames.idle)
+		this.sprite.animationSpeed = 0.12
+		this.sprite.anchor.set(0.5)
+		this.sprite.play()
+		// remove placeholder body parts
+		this.removeChild(this.legL, this.legR, this.body, this.eyeL, this.eyeR)
+		this.addChildAt(this.sprite, 0)
+		this.resolveMovementFn = resolveMovementFn ?? null
+	}
+
 	update(dt: number) {
 		if (this.destroyed) return
 		// chase
@@ -56,23 +73,38 @@ export class Enemy extends Container {
 		if (moving) {
 			const stepX = (dx / dist) * this.speed * dt
 			const stepY = (dy / dist) * this.speed * dt
-			const world: any = this.parent
-			if (world?.resolveMovement) {
-				const res = world.resolveMovement(this.x, this.y, stepX, stepY, 6)
+			if (this.resolveMovementFn) {
+				const res = this.resolveMovementFn(this.x, this.y, stepX, stepY, 6)
 				this.position.set(res.x, res.y)
 			} else {
 				this.x += stepX
 				this.y += stepY
 			}
 			this.walkPhase += dt * 12
-			const legSwing = Math.sin(this.walkPhase) * 0.6
-			this.legL.rotation = legSwing
-			this.legR.rotation = -legSwing
-			this.body.y = Math.sin(this.walkPhase) * 0.5
+			if (!this.sprite && this.legL) {
+				const legSwing = Math.sin(this.walkPhase) * 0.6
+				this.legL.rotation = legSwing
+				this.legR.rotation = -legSwing
+				this.body.y = Math.sin(this.walkPhase) * 0.5
+			}
+			if (this.sprite && this.animFrames) {
+				if (this.sprite.textures !== this.animFrames.run) {
+					this.sprite.textures = this.animFrames.run
+					this.sprite.play()
+				}
+			}
 		} else {
-			this.legL.rotation = 0
-			this.legR.rotation = 0
-			this.body.y = 0
+			if (!this.sprite) {
+				this.legL.rotation = 0
+				this.legR.rotation = 0
+				this.body.y = 0
+			}
+			if (this.sprite && this.animFrames) {
+				if (this.sprite.textures !== this.animFrames.idle) {
+					this.sprite.textures = this.animFrames.idle
+					this.sprite.play()
+				}
+			}
 		}
 
 		// simple eye blink

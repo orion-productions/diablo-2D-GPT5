@@ -1,26 +1,40 @@
-import { Graphics } from 'pixi.js'
+import { Graphics, AnimatedSprite, Texture, Container, Sprite, Assets } from 'pixi.js'
 import type { InventorySystem, Item } from './inventory'
 
-export class Candle extends Graphics {
-	private phase = Math.random() * Math.PI * 2
-	constructor() {
-		super()
-    this.drawFlame(0.6)
-	}
+export class Candle extends Container {
+    private phase = Math.random() * Math.PI * 2
+    private anim: AnimatedSprite | null = null
+    private fallback: Graphics | null = null
+    constructor(frames?: Texture[]) {
+        super()
+        if (frames && frames.length > 0) {
+            this.anim = new AnimatedSprite(frames)
+            this.anim.animationSpeed = 0.15
+            this.anim.anchor.set(0.5)
+            this.addChild(this.anim)
+            this.anim.play()
+        } else {
+            this.fallback = new Graphics()
+            this.addChild(this.fallback)
+            this.drawFlame(0.6)
+        }
+    }
 
-  private drawFlame(intensity: number) {
-		this.clear()
+    private drawFlame(intensity: number) {
+        if (!this.fallback) return
+        this.fallback.clear()
     // wall sconce + candle flame
-    this.rect(-2, 4, 4, 6).fill({ color: 0x6b4f2a }) // sconce wood
-    this.rect(-1, 1, 2, 4).fill({ color: 0xffffff }) // candle body
-    this.circle(0, -2, 2 + intensity * 0.8).fill({ color: 0xffcc55 })
+        this.fallback.rect(-2, 4, 4, 6).fill({ color: 0x6b4f2a }) // sconce wood
+        this.fallback.rect(-1, 1, 2, 4).fill({ color: 0xffffff }) // candle body
+        this.fallback.circle(0, -2, 2 + intensity * 0.8).fill({ color: 0xffcc55 })
 	}
 
-	update(dt: number) {
-		this.phase += dt * 6
-		const i = 0.5 + Math.sin(this.phase) * 0.3
-		this.drawFlame(i)
-	}
+    update(dt: number) {
+        if (this.anim) return
+        this.phase += dt * 6
+        const i = 0.5 + Math.sin(this.phase) * 0.3
+        this.drawFlame(i)
+    }
 }
 
 export class Breakable extends Graphics {
@@ -33,16 +47,15 @@ export class Breakable extends Graphics {
 		this.draw()
 	}
 
-	private draw() {
-		this.clear()
-		if (this.kind === 'table') {
-			this.rect(-6, -4, 12, 8).fill({ color: 0x6b4f2a })
-			this.rect(-5, 4, 3, 3).fill({ color: 0x4a3720 })
-			this.rect(2, 4, 3, 3).fill({ color: 0x4a3720 })
-		} else {
-			this.rect(-3, -6, 6, 8).fill({ color: 0x6b4f2a })
-		}
-	}
+    private async draw() {
+        this.clear()
+        const tex = this.kind === 'table'
+            ? await Assets.load<Texture>('/assets/characters/crate.png')
+            : await Assets.load<Texture>('/assets/tiles/box_1/box_1_1.png')
+        const s = new Sprite(tex)
+        s.anchor.set(0.5)
+        this.addChild(s)
+    }
 
 	takeDamage(dmg: number) {
 		this.hp -= dmg

@@ -42,9 +42,10 @@ h1 {
   text-align: center;
 }
 
+
 #inventory-overlay {
 	position: fixed;
-	top: 96px; /* below minimap */
+	top: 16px;
 	left: 16px;
 	background: rgba(0,0,0,0.7);
 	color: white;

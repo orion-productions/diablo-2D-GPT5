@@ -18,7 +18,8 @@ export class PlayerAnimator {
 	constructor(player: Sprite) {
 		this.player = player
 		this.attachments = new Container()
-		this.player.addChild(this.attachments)
+        this.player.parent?.addChild(this.attachments)
+        this.attachments.position.copyFrom(this.player.position)
 
 		this.helm = new Graphics().rect(-3, -12, 6, 3).fill({ color: 0xbbaa77 })
 		this.armor = new Graphics().rect(-5, -6, 10, 8).fill({ color: 0x7788aa })
@@ -50,6 +51,11 @@ export class PlayerAnimator {
 		this.armor.visible = !!equipment.armor
 		this.boots.visible = !!equipment.boots
 		this.weapon.visible = !!equipment.weapon
+		// tint based on equipped gear for visual feedback
+		this.armor.tint = equipment.armor ? 0x88aaff : 0xffffff
+		this.helm.tint = equipment.helmet ? 0xffeeaa : 0xffffff
+		this.boots.tint = equipment.boots ? 0xccaa88 : 0xffffff
+		this.weapon.tint = equipment.weapon ? 0xffcc55 : 0xffffff
 	}
 
 	update(dt: number) {

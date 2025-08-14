@@ -1,4 +1,4 @@
-import { Application, Assets, Container, Sprite } from 'pixi.js'
+import { Application, Container, AnimatedSprite } from 'pixi.js'
 import './style.css'
 import { InputManager } from './input'
 import { World } from './world'
@@ -10,6 +10,8 @@ import { Enemy } from './enemy'
 import { PlayerAnimator } from './player'
 import { Minimap } from './minimap'
 import { Candle, Breakable, Pickup } from './props'
+import { loadTiles } from './tiles'
+import { loadCharacterAnim } from './sprites'
 import { AudioManager } from './audio'
 
 async function boot() {
@@ -30,10 +32,12 @@ async function boot() {
 	camera.addChild(world)
 	app.stage.addChild(camera)
 
-	// Temporary player sprite (bunny) until real assets are placed
-	const texture = await Assets.load('https://pixijs.com/assets/bunny.png')
-	const player = new Sprite(texture)
-	player.anchor.set(0.5)
+    // Player animated sprite (knight)
+    const playerAnim = await loadCharacterAnim('knight_m')
+    const player = new AnimatedSprite(playerAnim.idle)
+    player.animationSpeed = 0.12
+    player.play()
+    player.anchor.set(0.5)
 	// Place player at first room center
 	const firstRoom = world.getRooms()[0]
 	player.x = firstRoom ? (firstRoom.cx * 16 + 8) : 128
@@ -50,21 +54,23 @@ async function boot() {
 	])
 	;(window as any).__audio = audio
 
-	// Decor: place wall candles around room perimeters
-	for (const room of world.getRooms()) {
-		for (let x = room.x; x < room.x + room.w; x += 4) {
-			const top = world.tileToWorld(x, room.y)
-			const bottom = world.tileToWorld(x, room.y + room.h - 1)
-			const c1 = new Candle(); c1.x = top.x; c1.y = top.y - 6; world.decorLayer.addChild(c1)
-			const c2 = new Candle(); c2.x = bottom.x; c2.y = bottom.y + 6; world.decorLayer.addChild(c2)
-		}
-		for (let y = room.y; y < room.y + room.h; y += 4) {
-			const left = world.tileToWorld(room.x, y)
-			const right = world.tileToWorld(room.x + room.w - 1, y)
-			const c3 = new Candle(); c3.x = left.x - 6; c3.y = left.y; world.decorLayer.addChild(c3)
-			const c4 = new Candle(); c4.x = right.x + 6; c4.y = right.y; world.decorLayer.addChild(c4)
-		}
-	}
+    // Load tiles and use animated candle frames if available
+    const tiles = await loadTiles()
+    await world.renderTilesFromAssets()
+    for (const room of world.getRooms()) {
+        for (let x = room.x; x < room.x + room.w; x += 4) {
+            const top = world.tileToWorld(x, room.y)
+            const bottom = world.tileToWorld(x, room.y + room.h - 1)
+            const c1 = new Candle(tiles.candleFrames); c1.x = top.x; c1.y = top.y - 6; world.decorLayer.addChild(c1)
+            const c2 = new Candle(tiles.candleFrames); c2.x = bottom.x; c2.y = bottom.y + 6; world.decorLayer.addChild(c2)
+        }
+        for (let y = room.y; y < room.y + room.h; y += 4) {
+            const left = world.tileToWorld(room.x, y)
+            const right = world.tileToWorld(room.x + room.w - 1, y)
+            const c3 = new Candle(tiles.candleFrames); c3.x = left.x - 6; c3.y = left.y; world.decorLayer.addChild(c3)
+            const c4 = new Candle(tiles.candleFrames); c4.x = right.x + 6; c4.y = right.y; world.decorLayer.addChild(c4)
+        }
+    }
 
 	const inventory = new InventorySystem()
 	inventory.add({ id: 'sword-1', name: 'Rusty Sword', slot: 'weapon', attack: 2 })
@@ -88,17 +94,18 @@ async function boot() {
 	inventory.equip('boots-1')
 	inventory.equip('sword-1')
 
-	const combat = new CombatSystem(world.playerLayer, world.decorLayer)
+	const combat = new CombatSystem(world.playerLayer, world.decorLayer, (x, y, r) => world.projectileHitsWall(x, y, r))
 	const overlay = new InventoryOverlay(inventory)
 	;(window as any).__inventory = inventory
 
-	// One enemy that chases the player but cannot hurt yet
-	const enemy = new Enemy(player)
+    // One enemy that chases the player but cannot hurt yet
+    const enemy = new Enemy(player)
+    await enemy.init('goblin', (x,y,dx,dy,r)=> world.resolveMovement(x,y,dx,dy,r))
 	// Place enemy in another room center if available
 	const secondRoom = world.getRooms()[1]
 	if (secondRoom) {
-		enemy.x = secondRoom.cx * 16 + 8
-		enemy.y = secondRoom.cy * 16 + 8
+        enemy.x = secondRoom.cx * 16 + 8
+        enemy.y = secondRoom.cy * 16 + 8
 	} else {
 		enemy.x = player.x + 200
 		enemy.y = player.y + 50
@@ -109,7 +116,8 @@ async function boot() {
 	// Spawn additional enemies and breakables/pickups in rooms
 	for (let i = 2; i < Math.min(world.getRooms().length, 8); i++) {
 		const rm = world.getRooms()[i]
-		const e = new Enemy(player)
+        const e = new Enemy(player)
+        await e.init(i % 2 === 0 ? 'skeleton' : 'goblin', (x,y,dx,dy,r)=> world.resolveMovement(x,y,dx,dy,r))
 		e.x = rm.cx * 16 + 8
 		e.y = rm.cy * 16 + 8
 		world.entityLayer.addChild(e)
@@ -188,23 +196,20 @@ async function boot() {
 		if (input.wasPressed('m')) audio.toggleMute()
 		if (input.wasPressed('+') || input.wasPressed('=')) audio.adjustVolume(0.05)
 		if (input.wasPressed('-') || input.wasPressed('_')) audio.adjustVolume(-0.05)
-		// Open nearest chest with E
+		// Open nearest chest/pickup with E
 		if (input.wasPressed('e')) {
 			let nearest: any = null
 			let best = Infinity
-			for (const layer of [world.pickupLayer, world.children[0] as any, world.children[1] as any, world.children[2] as any]) {
-				const list = layer?.children ?? []
+			const layers: any[] = [world, world.decorLayer, world.pickupLayer, world.entityLayer, world.playerLayer]
+			for (const layer of layers) {
+				const list = (layer?.children ?? []) as any[]
 				for (const child of list) {
-				if ((child as any).tryOpen) {
-					const dx = (child as any).x - player.x
-					const dy = (child as any).y - player.y
+					const cx = (child as any).x; const cy = (child as any).y
+					if (typeof cx !== 'number' || typeof cy !== 'number') continue
+					const dx = cx - player.x
+					const dy = cy - player.y
 					const d2 = dx * dx + dy * dy
-					if (d2 < best) { best = d2; nearest = child }
-					}
-					if ((child as any).collect) {
-						const dx = (child as any).x - player.x
-						const dy = (child as any).y - player.y
-						const d2 = dx * dx + dy * dy
+					if ((child as any).tryOpen || (child as any).collect) {
 						if (d2 < best) { best = d2; nearest = child }
 					}
 				}

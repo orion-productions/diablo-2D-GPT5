@@ -3,12 +3,15 @@ import { Enemy } from './enemy'
 import { Breakable } from './props'
 
 export class Projectile extends Graphics {
-	private vx: number
-	private vy: number
-	private lifetime: number = 1.2
-  private damage = 3
+    private vx: number
+    private vy: number
+    private lifetime: number = 1.2
+    private damage = 3
+    private radius = 3
+    private collideFn?: (x: number, y: number, r: number) => boolean
+    private bounceDamping = 0.8
 
-	constructor(x: number, y: number, dirX: number, dirY: number, speed: number, color = 0x66ccff) {
+    constructor(x: number, y: number, dirX: number, dirY: number, speed: number, color = 0x66ccff, collideFn?: (x: number, y: number, r: number) => boolean) {
 		super()
 		this.circle(0, 0, 3).fill({ color })
 		this.x = x
@@ -16,11 +19,25 @@ export class Projectile extends Graphics {
 		const len = Math.hypot(dirX, dirY) || 1
 		this.vx = (dirX / len) * speed
 		this.vy = (dirY / len) * speed
+        this.collideFn = collideFn
 	}
 
-	update(dt: number): boolean {
-		this.x += this.vx * dt
-		this.y += this.vy * dt
+    update(dt: number): boolean {
+        // integrate with simple wall bounce
+        const nextX = this.x + this.vx * dt
+        const nextY = this.y + this.vy * dt
+        if (this.collideFn && this.collideFn(nextX, this.y, this.radius)) {
+            this.vx = -this.vx * this.bounceDamping
+        } else {
+            this.x = nextX
+        }
+        if (this.collideFn && this.collideFn(this.x, nextY, this.radius)) {
+            this.vy = -this.vy * this.bounceDamping
+        } else {
+            this.y = nextY
+        }
+        // kill if very slow
+        if (Math.hypot(this.vx, this.vy) < 20) this.lifetime -= dt * 2
 		this.lifetime -= dt
 		return this.lifetime <= 0
 	}
@@ -44,14 +61,16 @@ export class CombatSystem {
   layer: Container
   enemies: Enemy[] = []
   breakablesLayer?: Container
+    private collideFn?: (x: number, y: number, r: number) => boolean
 
-  constructor(layer: Container, breakablesLayer?: Container) {
+    constructor(layer: Container, breakablesLayer?: Container, collideFn?: (x: number, y: number, r: number) => boolean) {
     this.layer = layer
     this.breakablesLayer = breakablesLayer
+        this.collideFn = collideFn
   }
 
-	castMagic(x: number, y: number, targetX: number, targetY: number) {
-		const p = new Projectile(x, y, targetX - x, targetY - y, 280, 0x99ddff)
+    castMagic(x: number, y: number, targetX: number, targetY: number) {
+        const p = new Projectile(x, y, targetX - x, targetY - y, 280, 0x99ddff, this.collideFn)
 		this.layer.addChild(p)
 		this.projectiles.push(p)
 	}

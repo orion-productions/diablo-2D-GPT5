@@ -45,20 +45,25 @@ h1 {
 
 #inventory-overlay {
 	position: fixed;
-	top: 16px;
-	left: 16px;
-	background: rgba(0,0,0,0.7) url('/assets/ui/dungeonui.v1.png');
-	color: white;
-	padding: 12px;
-	border: 1px solid #444;
+	top: 8px;
+	left: 8px;
+	/* use a solid dark panel to avoid noisy tiling */
+	background: rgba(10,10,10,0.85);
+	color: #fff;
+	padding: 8px;
+	border: 1px solid #333;
+	image-rendering: pixelated;
 	font-family: monospace;
 	z-index: 1000;
 }
-.inv-title { margin-bottom: 8px; font-weight: 700; }
-.inv-equipped { margin-bottom: 8px; }
-.inv-grid { display: grid; grid-template-columns: repeat(2, 1fr); gap: 6px; }
-.inv-cell { padding: 6px; background: url('/assets/ui/square_left_1.png') center/cover no-repeat; width: 36px; height: 36px; display: inline-flex; align-items: center; justify-content: center; }
+.inv-head { display: flex; align-items: center; gap: 6px; margin-bottom: 6px; }
+.inv-gold { font-weight: 700; }
+.inv-equipped { margin-bottom: 6px; }
+.eq-grid { display: grid; grid-template-columns: repeat(7, 36px); gap: 6px; }
+.bag-grid { display: grid; grid-template-columns: repeat(8, 36px); gap: 6px; }
+.inv-cell { width: 36px; height: 36px; display: inline-flex; align-items: center; justify-content: center; background: #1b1b1b; border: 1px solid #2a2a2a; }
 .inv-cell img { image-rendering: pixelated; }
+.clickable { cursor: pointer; }
 
 .logo {
   height: 6em;

@@ -6,6 +6,7 @@ export class InventoryOverlay {
   private list: HTMLDivElement
   private equipped: HTMLDivElement
   private inventory: InventorySystem
+  private headGold: HTMLSpanElement
 
   constructor(inventory: InventorySystem) {
     this.inventory = inventory
@@ -13,9 +14,19 @@ export class InventoryOverlay {
     this.root.id = 'inventory-overlay'
     this.root.style.display = 'block'
 
-    const title = document.createElement('div')
-    title.className = 'inv-title'
-    title.textContent = 'Inventory (click item to equip, I to close)'
+    // Minimal header with gold
+    const head = document.createElement('div')
+    head.className = 'inv-head'
+    const coin = document.createElement('img')
+    coin.src = '/assets/tiles/coin/coin_1.png'
+    coin.width = 16
+    coin.height = 16
+    const goldSpan = document.createElement('span')
+    goldSpan.className = 'inv-gold'
+    goldSpan.textContent = String(this.inventory.gold)
+    this.headGold = goldSpan
+    head.appendChild(coin)
+    head.appendChild(goldSpan)
 
     this.equipped = document.createElement('div')
     this.equipped.className = 'inv-equipped'
@@ -23,7 +34,7 @@ export class InventoryOverlay {
     this.list = document.createElement('div')
     this.list.className = 'inv-list'
 
-    this.root.appendChild(title)
+    this.root.appendChild(head)
     this.root.appendChild(this.equipped)
     this.root.appendChild(this.list)
     document.body.appendChild(this.root)
@@ -39,14 +50,13 @@ export class InventoryOverlay {
   }
 
   render() {
+    // update gold
+    this.headGold.textContent = String(this.inventory.gold)
     // Equipped
     const eq = this.inventory.equipment
     this.equipped.innerHTML = ''
-    const eqTitle = document.createElement('div')
-    eqTitle.textContent = `Equipped (Gold: ${this.inventory.gold}):`
-    this.equipped.appendChild(eqTitle)
     const eqGrid = document.createElement('div')
-    eqGrid.className = 'inv-grid'
+    eqGrid.className = 'eq-grid'
     for (const slot of ['weapon','armor','helmet','boots','offhand','amulet','ring'] as const) {
       const cell = document.createElement('div')
       cell.className = 'inv-cell'
@@ -71,14 +81,11 @@ export class InventoryOverlay {
 
     // Bag
     this.list.innerHTML = ''
-    const bagTitle = document.createElement('div')
-    bagTitle.textContent = 'Bag:'
-    this.list.appendChild(bagTitle)
     const grid = document.createElement('div')
-    grid.className = 'inv-grid'
+    grid.className = 'bag-grid'
     this.inventory.bag.forEach((item) => {
-      const cell = document.createElement('button')
-      cell.className = 'inv-cell'
+      const cell = document.createElement('div')
+      cell.className = 'inv-cell clickable'
       const img = document.createElement('img')
       img.style.width = '24px'
       img.style.height = '24px'

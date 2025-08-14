@@ -79,6 +79,18 @@ export class InventoryOverlay {
       if (item) cell.title = item.name
       if (item) cell.classList.add('filled')
       if (src && item) cell.appendChild(img)
+      // rarity/class badge per item type for quick differentiation
+      const badge = document.createElement('div')
+      badge.className = 'badge'
+      let color = '#3a3a3a'
+      if (item) {
+        if (item.name.toLowerCase().includes('leather') || item.name.toLowerCase().includes('buckler')) color = '#7a5230'
+        else if (item.name.toLowerCase().includes('cloth') || item.name.toLowerCase().includes('padded')) color = '#556b9a'
+        else if (item.name.toLowerCase().includes('rusty') || item.name.toLowerCase().includes('copper')) color = '#9a7b4f'
+        else if (item.name.toLowerCase().includes('short') || item.name.toLowerCase().includes('simple')) color = '#6d8a3c'
+      }
+      badge.style.background = color
+      cell.appendChild(badge)
       const label = document.createElement('div')
       label.className = 'slot-label'
       label.textContent = SLOT_LABELS[slot]
@@ -109,6 +121,16 @@ export class InventoryOverlay {
       else if (item.slot === 'amulet') src = '/assets/tiles/keys/keys_1_1.png'
       if (src) img.src = src; else cell.textContent = item.name
       if (src) cell.appendChild(img)
+      const badge = document.createElement('div')
+      badge.className = 'badge'
+      let color = '#3a3a3a'
+      const nm = item.name.toLowerCase()
+      if (nm.includes('leather') || nm.includes('buckler')) color = '#7a5230'
+      else if (nm.includes('cloth') || nm.includes('padded')) color = '#556b9a'
+      else if (nm.includes('rusty') || nm.includes('copper')) color = '#9a7b4f'
+      else if (nm.includes('short') || nm.includes('simple')) color = '#6d8a3c'
+      badge.style.background = color
+      cell.appendChild(badge)
       cell.title = item.name
       cell.onclick = () => this.onItemClick(item)
       const sl = document.createElement('div')

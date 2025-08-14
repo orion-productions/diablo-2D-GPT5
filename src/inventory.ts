@@ -21,14 +21,19 @@ export class InventorySystem {
 	}
 
 	equip(itemId: string): boolean {
-		const idx = this.bag.findIndex((i) => i.id === itemId)
-		if (idx < 0) return false
-		const item = this.bag[idx]
+			const idx = this.bag.findIndex((i) => i.id === itemId)
+			if (idx < 0) return false
+			const item = this.bag[idx]
 		if (item.slot === 'potion') return false
-		const prev = this.equipment[item.slot]
-		this.equipment[item.slot] = item
-		this.bag.splice(idx, 1)
-		if (prev) this.bag.push(prev)
+			const prev = this.equipment[item.slot]
+			// avoid equipping if identical item already equipped
+			if (prev && prev.id === item.id) return false
+			// place previous back into bag in the same position for stability
+			this.equipment[item.slot] = item
+			this.bag.splice(idx, 1)
+			if (prev) {
+				this.bag.splice(idx, 0, prev)
+			}
 		return true
 	}
 

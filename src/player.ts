@@ -21,9 +21,9 @@ export class PlayerAnimator {
         this.player.parent?.addChild(this.attachments)
         this.attachments.position.copyFrom(this.player.position)
 
-		this.helm = new Graphics().rect(-3, -12, 6, 3).fill({ color: 0xbbaa77 })
-		this.armor = new Graphics().rect(-5, -6, 10, 8).fill({ color: 0x7788aa })
-		this.boots = new Graphics().rect(-4, 6, 8, 3).fill({ color: 0x664422 })
+    this.helm = new Graphics().rect(-3, -12, 6, 3).fill({ color: 0xbbaa77 })
+    this.armor = new Graphics().rect(-5, -6, 10, 8).fill({ color: 0x7788aa })
+    this.boots = new Graphics().rect(-4, 6, 8, 3).fill({ color: 0x664422 })
 		this.weapon = new Graphics().rect(6, -1, 8, 2).fill({ color: 0xccaa55 })
 		this.weapon.pivot.set(0, 0)
 		this.castGlow = new Graphics().circle(0, 0, 10).fill({ color: 0x77ccff, alpha: 0.5 })
@@ -52,10 +52,16 @@ export class PlayerAnimator {
 		this.boots.visible = !!equipment.boots
 		this.weapon.visible = !!equipment.weapon
 		// tint based on equipped gear for visual feedback
-		this.armor.tint = equipment.armor ? 0x88aaff : 0xffffff
-		this.helm.tint = equipment.helmet ? 0xffeeaa : 0xffffff
-		this.boots.tint = equipment.boots ? 0xccaa88 : 0xffffff
-		this.weapon.tint = equipment.weapon ? 0xffcc55 : 0xffffff
+    // differentiate visuals by item names
+    const armorName = equipment.armor?.name.toLowerCase() || ''
+    const helmName = equipment.helmet?.name.toLowerCase() || ''
+    const bootsName = equipment.boots?.name.toLowerCase() || ''
+    const weaponName = equipment.weapon?.name.toLowerCase() || ''
+
+    this.armor.tint = equipment.armor ? (armorName.includes('cloth') ? 0x8aa3ff : armorName.includes('padded') ? 0x6b84d6 : 0xa1b6ff) : 0xffffff
+    this.helm.tint = equipment.helmet ? (helmName.includes('leather') ? 0xc89c6b : 0xffeeaa) : 0xffffff
+    this.boots.tint = equipment.boots ? (bootsName.includes('leather') ? 0x8b5a2b : 0xccaa88) : 0xffffff
+    this.weapon.tint = equipment.weapon ? (weaponName.includes('rusty') ? 0xb08e63 : weaponName.includes('short') ? 0xd1b35a : 0xffcc55) : 0xffffff
 	}
 
 	update(dt: number) {
